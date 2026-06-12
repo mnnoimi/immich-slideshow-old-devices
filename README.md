@@ -115,7 +115,7 @@ http://localhost:8080/
 ### Album ID via URL (no ALBUM_ID in .env needed)
 
 ```text
-http://localhost:8080/?album_id=7adeee1d-c6f3-42b9-97a1-1ca5b29db35d
+http://localhost:8080/?album_id=3213465465-c6f3-42b9-97a1-212112x1s56
 ```
 
 ---
