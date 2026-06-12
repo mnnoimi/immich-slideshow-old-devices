@@ -136,7 +136,7 @@ try {
         }
         #overlay-info {
             position: fixed;
-            bottom: 65px;
+            bottom: 15px;
             right: 15px;
             background: rgba(0, 0, 0, 0.45);
             color: white;
