@@ -25,9 +25,13 @@ $random_order = filter_var($_GET['random'] ?? $configuration->get(Configuration:
 $status_bar_style = in_array($_GET['status_bar'] ?? '', ['default', 'black-translucent', 'black']) 
     ? $_GET['status_bar'] 
     : ($configuration->get(Configuration::STATUS_BAR_STYLE) ?? 'black-translucent');
-$orientation = in_array($_GET['orientation'] ?? '', ['landscape', 'portrait', 'all']) 
-    ? $_GET['orientation'] 
+$orientation = in_array($_GET['orientation'] ?? '', ['landscape', 'portrait', 'all'])
+    ? $_GET['orientation']
     : ($configuration->get(Configuration::ORIENTATION) ?? 'all');
+$ken_burns      = filter_var($_GET['ken_burns'] ?? $configuration->get(Configuration::KEN_BURNS) ?? 'true', FILTER_VALIDATE_BOOLEAN);
+$crop_to_screen = filter_var($_GET['crop']     ?? $configuration->get(Configuration::CROP)       ?? 'true', FILTER_VALIDATE_BOOLEAN);
+$raw_locale     = $_GET['locale'] ?? $configuration->get(Configuration::LOCALE) ?? 'ar';
+$locale       = in_array($raw_locale, ['en', 'ar']) ? $raw_locale : 'ar';
 
 // Validate required parameters
 if (!$album_id) {
@@ -87,7 +91,7 @@ try {
 }
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="<?php echo $locale; ?>" <?php if ($locale === 'ar') { echo 'dir="rtl"'; } ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui"/>
@@ -104,6 +108,90 @@ try {
     <link rel="stylesheet" href="assets/main.css?v=<?php echo filemtime('assets/main.css'); ?>"/>
     <script src="assets/main.js?v=<?php echo filemtime('assets/main.js'); ?>"></script>
     <style>
+        #overlay-clock {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.45);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 6px;
+            z-index: 500;
+            text-align: right;
+            pointer-events: none;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+            font-family: sans-serif;
+        }
+        #clock-time {
+            font-size: 36px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            font-family: monospace;
+            line-height: 1;
+        }
+        #clock-date {
+            font-size: 20px;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
+        #overlay-info {
+            position: fixed;
+            bottom: 65px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.45);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 6px;
+            z-index: 500;
+            text-align: right;
+            pointer-events: none;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+            font-family: sans-serif;
+            max-width: 300px;
+        }
+        #info-datetime { font-size: 20px; opacity: 0.85; }
+        #info-people   { font-size: 14px; font-weight: bold; margin-top: 3px; }
+        #info-location { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+        #overlay-counter {
+            position: fixed;
+            bottom: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.45);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            z-index: 500;
+            pointer-events: none;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+            font-family: monospace;
+            font-size: 13px;
+            letter-spacing: 1px;
+        }
+        #fullscreen-btn {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.45);
+            border: none;
+            border-radius: 6px;
+            z-index: 500;
+            cursor: pointer;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-align-items: center;
+            align-items: center;
+            -webkit-justify-content: center;
+            justify-content: center;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-transition: background 0.2s;
+            transition: background 0.2s;
+        }
+        #fullscreen-btn:hover { background: rgba(0, 0, 0, 0.65); }
+    </style>
+    <style>
         html, body {
             background-color: <?php echo htmlspecialchars($background); ?>;
         }
@@ -116,11 +204,49 @@ try {
             <img src="assets/apple-icon-180.png" id="next-img" alt="Next slideshow image"/>
         </a>
     </div>
-    <img src="assets/pause.png" alt="Pause icon" class="pause-icon" id="pause-icon"/>
+    <div class="pause-icon" id="pause-icon">
+        <img src="assets/pause.png" alt="Pause"/>
+    </div>
+
+    <div id="overlay-clock">
+        <div id="clock-time">00:00:00</div>
+        <div id="clock-date"></div>
+    </div>
+
+    <div id="overlay-counter">
+        <div id="photo-counter"></div>
+    </div>
+
+    <div id="overlay-info">
+        <div id="info-datetime"></div>
+        <div id="info-people"></div>
+        <div id="info-location"></div>
+    </div>
+
+    <div id="progress-bar"><div id="progress-fill"></div></div>
+
+    <div id="nav-prev-zone" class="nav-zone nav-zone-left">
+        <div id="nav-prev-arrow" class="nav-arrow">&#10094;</div>
+    </div>
+    <div id="nav-next-zone" class="nav-zone nav-zone-right">
+        <div id="nav-next-arrow" class="nav-arrow">&#10095;</div>
+    </div>
+
+    <button id="fullscreen-btn" type="button" title="Toggle fullscreen">
+        <svg id="fs-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white">
+            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+        </svg>
+    </button>
+
     <script>
         initSlideshow({
-            photos: <?php echo json_encode($photos); ?>,
-            duration: <?php echo $carousel_duration; ?>
+            photos:       <?php echo json_encode($photos); ?>,
+            duration:     <?php echo $carousel_duration; ?>,
+            albumId:      "<?php echo htmlspecialchars($album_id, ENT_QUOTES); ?>",
+            orientation:  "<?php echo htmlspecialchars($orientation, ENT_QUOTES); ?>",
+            random:       <?php echo $random_order    ? 'true' : 'false'; ?>,
+            kenBurns:     <?php echo $ken_burns       ? 'true' : 'false'; ?>,
+            cropToScreen: <?php echo $crop_to_screen  ? 'true' : 'false'; ?>
         });
 
         document.onkeydown = function(e) {
@@ -159,6 +285,119 @@ try {
                 break;
         }
     };
+    </script>
+    <script>
+        // Clock
+        var LOCALE       = <?php echo json_encode($locale); ?>;
+        var MONTHS_SHORT = <?php echo json_encode($locale === 'ar'
+            ? ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+            : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+        ); ?>;
+        var DAYS_LONG    = <?php echo json_encode($locale === 'ar'
+            ? ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت']
+            : ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+        ); ?>;
+
+        function updateClock() {
+            var now = new Date();
+            var h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+            var timeEl = document.getElementById('clock-time');
+            var dateEl = document.getElementById('clock-date');
+            if (timeEl) {
+                timeEl.innerHTML = (h < 10 ? '0' : '') + h + ':' +
+                                   (m < 10 ? '0' : '') + m + ':' +
+                                   (s < 10 ? '0' : '') + s;
+            }
+            if (dateEl) {
+                if (LOCALE === 'ar') {
+                    dateEl.innerHTML = DAYS_LONG[now.getDay()] + '، ' +
+                                       now.getDate() + ' ' +
+                                       MONTHS_SHORT[now.getMonth()] + ' ' +
+                                       now.getFullYear();
+                } else {
+                    dateEl.innerHTML = DAYS_LONG[now.getDay()] + ', ' +
+                                       MONTHS_SHORT[now.getMonth()] + ' ' +
+                                       now.getDate() + ', ' + now.getFullYear();
+                }
+            }
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // Image info overlay
+        function fetchAssetInfo(assetId) {
+            if (!assetId) return;
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/asset-info.php?asset=' + encodeURIComponent(assetId), true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    try {
+                        updateInfoOverlay(JSON.parse(xhr.responseText));
+                    } catch (e) {
+                        updateInfoOverlay({});
+                    }
+                }
+            };
+            xhr.send();
+        }
+
+        function updateInfoOverlay(info) {
+            var dtEl  = document.getElementById('info-datetime');
+            var pplEl = document.getElementById('info-people');
+            var locEl = document.getElementById('info-location');
+            if (dtEl)  dtEl.innerHTML  = info.datetime || '';
+            if (pplEl) pplEl.innerHTML = (info.people && info.people.length) ? info.people.join(', ') : '';
+            if (locEl) locEl.innerHTML = info.location || '';
+            var infoEl = document.getElementById('overlay-info');
+            if (infoEl) {
+                infoEl.style.display = (info.datetime || (info.people && info.people.length) || info.location) ? '' : 'none';
+            }
+        }
+
+        // Called from main.js on every image change
+        window.onImageChange = function(assetId) {
+            fetchAssetInfo(assetId);
+        };
+
+        // Fullscreen button
+        (function () {
+            var btn  = document.getElementById('fullscreen-btn');
+            var icon = document.getElementById('fs-icon');
+            if (!btn) return;
+
+            var EXPAND   = '<path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>';
+            var COMPRESS = '<path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>';
+
+            function isFS() {
+                return !!(document.fullscreenElement || document.webkitFullscreenElement ||
+                          document.mozFullScreenElement || document.msFullscreenElement);
+            }
+
+            function updateIcon() {
+                if (icon) icon.innerHTML = isFS() ? COMPRESS : EXPAND;
+            }
+
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (isFS()) {
+                    if (document.exitFullscreen)            document.exitFullscreen();
+                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                    else if (document.mozCancelFullScreen)  document.mozCancelFullScreen();
+                    else if (document.msExitFullscreen)     document.msExitFullscreen();
+                } else {
+                    var el = document.documentElement;
+                    if (el.requestFullscreen)            el.requestFullscreen();
+                    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                    else if (el.mozRequestFullScreen)    el.mozRequestFullScreen();
+                    else if (el.msRequestFullscreen)     el.msRequestFullscreen();
+                }
+            });
+
+            document.addEventListener('fullscreenchange',       updateIcon);
+            document.addEventListener('webkitfullscreenchange', updateIcon);
+            document.addEventListener('mozfullscreenchange',    updateIcon);
+            document.addEventListener('MSFullscreenChange',     updateIcon);
+        })();
     </script>
 </body>
 </html>

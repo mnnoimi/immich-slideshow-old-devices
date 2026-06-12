@@ -129,8 +129,49 @@ class ImmichApi {
     }
 
     /**
+     * Get asset metadata (date, people, location)
+     *
+     * @param string $asset_id Asset ID
+     * @return array Raw asset JSON from Immich
+     * @throws Exception If there's an error in the request
+     */
+    public function getAssetInfo(string $asset_id): array {
+        if (empty($asset_id)) {
+            throw new InvalidArgumentException('Asset ID is required');
+        }
+
+        $url = "{$this->immich_url}/api/assets/{$asset_id}";
+        $ch = curl_init($url);
+
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "x-api-key: {$this->api_key}",
+            "Accept: application/json"
+        ]);
+
+        $response = curl_exec($ch);
+        if ($response === false) {
+            $error = "Error: " . curl_error($ch);
+            throw new Exception($error);
+        }
+
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        if ($http_code !== 200) {
+            throw new Exception("HTTP error $http_code when fetching asset info");
+        }
+
+        $data = json_decode($response, true);
+        if (!is_array($data)) {
+            throw new Exception("Invalid response from Immich");
+        }
+
+        return $data;
+    }
+
+    /**
      * Get a specific asset
-     * 
+     *
      * @param string $asset_id Asset ID
      * @param string $size Thumbnail size
      * @return array [string $content_type, string $image_data]

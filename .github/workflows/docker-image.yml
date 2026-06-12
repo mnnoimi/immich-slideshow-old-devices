@@ -22,7 +22,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: damarte/immich-slideshow-old-devices
+        images: mnnoimi/immich-slideshow-old-devices
 
     - name: Build and push to dockerhub
       uses: docker/build-push-action@v6

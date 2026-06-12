@@ -35,12 +35,31 @@ try {
         throw new Exception("Failed to create image from source");
     }
 
+    // Correct orientation using EXIF so portrait photos display upright on all browsers
+    if ($data[0] === 'image/jpeg' && function_exists('exif_read_data')) {
+        $stream = fopen('php://temp', 'r+');
+        fwrite($stream, $data[1]);
+        rewind($stream);
+        $exif = @exif_read_data($stream);
+        fclose($stream);
+        if ($exif && isset($exif['Orientation'])) {
+            switch ((int)$exif['Orientation']) {
+                case 3: $source = imagerotate($source, 180, 0); break;
+                case 6: $source = imagerotate($source, -90, 0); break;
+                case 8: $source = imagerotate($source, 90, 0); break;
+                default: break;
+            }
+        }
+    }
+
     // Get original dimensions
     $source_width = imagesx($source);
     $source_height = imagesy($source);
 
-    // Get cropping configuration
-    $crop_to_screen = $configuration->get(Configuration::CROP) !== 'false'; // Default to true
+    // Get cropping configuration — URL param takes precedence over config
+    $crop_to_screen = isset($_GET['crop'])
+        ? filter_var($_GET['crop'], FILTER_VALIDATE_BOOLEAN)
+        : ($configuration->get(Configuration::CROP) !== 'false');
 
     // Get background color
     $background = preg_match('/^[a-zA-Z0-9#]+$/', $_GET['background'] ?? '') 

@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
 	libpng-dev \
 	libwebp-dev \
     libcurl4-openssl-dev \
-    && docker-php-ext-install curl \
+    && docker-php-ext-install curl exif \
     && docker-php-ext-configure gd --with-webp --with-jpeg \
     && docker-php-ext-install -j$(nproc) gd \
     && apt-get clean \

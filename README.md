@@ -1,133 +1,199 @@
-# Immich Slideshow for old Devices with Management UI
+# Immich Slideshow for Old Devices
 
-I added some stuff to this repo in order to get it working with the Fully Kiosk Browser on a Nixplay w10a. Generally this should work on tablets with android 19 (4.4). The main slideshow is is at the root URL while the management is done at /management.php. The tablet itself is running fully kiosk's browser, and Tasker to reboot the browser upon reboot/crash.
-
-A simple PHP-based slideshow application for Immich album photos, designed to work on older devices and browsers (iOS 9, old Android, ECMAScript 2009...). It displays photos from a specified Immich album in a full-screen slideshow format.
-
-One day I decided to dust off two old iPads I had in a drawer (an iPad 2 and an iPad mini) to use them as digital photo frames, so my parents could see their granddaughter's photos from an album of my Immich instance.
-
-I searched for projects already created for this purpose and found the great [Immich Kiosk](https://github.com/damongolding/immich-kiosk), it's a good project but it doesn't work on such old devices, so I decided to create a simple alternative but that works on older browsers and devices.
+A lightweight PHP slideshow application for [Immich](https://immich.app) photo albums, built to run on older devices and browsers — iPad 2, old Android tablets, Fully Kiosk Browser, ECMAScript 2009 environments. Displays photos full-screen with overlays, navigation, and Ken Burns motion.
 
 > [!NOTE]
-> If your device supports [Immich Kiosk](https://github.com/damongolding/immich-kiosk), maybe you should use it before this project.
-
+> If your device supports [Immich Kiosk](https://github.com/damongolding/immich-kiosk), consider using it — it has more features. This project exists for devices too old to run Kiosk.
+>
 > [!IMPORTANT]
 > **This project is not affiliated with [Immich](https://github.com/immich-app/immich)**
 
 ## Features
 
-- Full-screen slideshow of Immich album photos
-- Configurable slide transition time
-- Automatic WebP to JPEG conversion for better compatibility
-- Customizable background color
-- Optional random order for photos
-- Configurable status bar style for iOS devices
-- Automatic page reload after showing all photos
-- Built-in image caching for better performance
-- Filter images by orientation (landscape/portrait/all)
-- Pause/resume slide
-- Management UI [@JosephAntony1](https://github.com/JosephAntony1)
-- Remote control support [@JosephAntony1](https://github.com/JosephAntony1)
+- Full-screen slideshow from one or more Immich albums
+- Overlay: live digital clock, date, photo date/time, recognized people, location
+- Left/right tap or click zones for manual navigation
+- Ken Burns subtle zoom/pan motion between slides
+- Progress bar showing time remaining on current photo
+- Photo counter (e.g. `5 / 79`)
+- Pause/resume by tapping the center of the screen
+- Album content refresh without page reload (checks every 5 minutes and at end of each cycle)
+- Random or sequential order
+- Filter by orientation (landscape / portrait / all)
+- Crop to fill screen or fit with letterbox bars
+- Arabic and English locale for date/day text
+- Browser fullscreen mode
+- WebP → JPEG conversion for old browser compatibility
+- All options configurable via `.env` **or** URL parameters
+- Management UI for selecting albums (`/management.php`)
+- Remote control keyboard support
 
 ## Requirements
 
-- Docker and Docker Compose
+- Docker
 - Access to an Immich server
 - Immich API key
-- Album ID from your Immich server
 
-## Installation
-
-1. Clone this repository:
+## Quick Start
 
 ```bash
 git clone https://github.com/yourusername/immich-slideshow-old-devices.git
 cd immich-slideshow-old-devices
-```
-
-2. Copy the environment file and configure it:
-
-```bash
 cp .env.example .env
+# Edit .env — set IMMICH_URL and IMMICH_API_KEY at minimum
 ```
 
-3. Edit the `.env` file with your settings:
-
-```env
-IMMICH_URL=http://your-immich-server:2283
-IMMICH_API_KEY=your_api_key
-ALBUM_ID=your_album_id,another_album_id
-CAROUSEL_DURATION=5
-CSS_BACKGROUND_COLOR=black
-RANDOM_ORDER=false
-STATUS_BAR_STYLE=black-translucent
-IMAGES_ORIENTATION=all
-CROP_TO_SCREEN=true
-```
-
-## Usage
-
-### Development
-
-To run the application in development mode:
+### Run with Docker
 
 ```bash
-docker-compose up -d
+# Build and run
+docker build -t immich-slideshow .
+docker run -d \
+  --name immich-slideshow \
+  -p 8080:80 \
+  --env-file .env \
+  -v ./public:/var/www/html \
+  immich-slideshow
 ```
 
-### Production
+The slideshow is available at `http://localhost:8080`
 
-For production deployment:
-
-```bash
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-The application will be available at `http://localhost:8080`
-
-## Environment Variables
-
-| Variable             | Description                                          | Default           | Required |
-| -------------------- | ---------------------------------------------------- | ----------------- | -------- |
-| IMMICH_URL           | URL of your Immich server                            | -                 | Yes      |
-| IMMICH_API_KEY       | Your Immich API key                                  | -                 | Yes      |
-| ALBUM_ID             | ID of the album(s) to display (comma separated)      | -                 | Yes      |
-| CAROUSEL_DURATION    | Time in seconds between slides                       | 5                 | No       |
-| CSS_BACKGROUND_COLOR | Background color of the slideshow                    | black             | No       |
-| RANDOM_ORDER         | Show photos in random order                          | false             | No       |
-| STATUS_BAR_STYLE     | Style of the iOS status bar                          | black-translucent | No       |
-| IMAGES_ORIENTATION   | Orientation of the images (landscape/portrait/all)   | all               | No       |
-| CROP_TO_SCREEN       | Crop images to fill the screen (true) or fit (false) | true              | No       |
-
-## Management UI
-
-You can override the environment variables using management UI, navigate to:
-
-```
-http://localhost:8080/management.php
-```
-
-## Query Parameters
-
-You can override the environment variables using query parameters in the URL:
-
-- `album_id`: Override the ALBUM_ID (can be comma separated)
-- `duration`: Override the CAROUSEL_DURATION
-- `background`: Override the CSS_BACKGROUND_COLOR
-- `random`: Override the RANDOM_ORDER (use 'true' or 'false')
-- `status_bar`: Override the STATUS_BAR_STYLE (use 'default', 'black-translucent', or 'black')
-- `orientation`: Override the IMAGES_ORIENTATION (use 'landscape', 'portrait', or 'all')
-
-Example:
-
-```
-http://localhost:8080/?random=true&duration=3
-```
-
-## Docker
+### Run with Docker Compose (if available)
 
 ```bash
 docker compose up -d --build
+```
+
+## Configuration
+
+All settings can be set in `.env` **or** passed as URL query parameters. URL parameters always take precedence.
+
+Only `IMMICH_URL` and `IMMICH_API_KEY` are required — all other settings have defaults.
+
+### Environment Variables & URL Parameters
+
+| Variable | URL param | Description | Default | Required |
+| --- | --- | --- | --- | --- |
+| `IMMICH_URL` | — | Immich server base URL | — | **Yes** |
+| `IMMICH_API_KEY` | — | Immich API key | — | **Yes** |
+| `ALBUM_ID` | `album_id` | Album ID(s) to display, comma-separated | — | No* |
+| `CAROUSEL_DURATION` | `duration` | Seconds each photo is shown | `5` | No |
+| `CSS_BACKGROUND_COLOR` | `background` | Background colour (name or hex) | `#000000` | No |
+| `RANDOM_ORDER` | `random` | Shuffle photos randomly | `false` | No |
+| `STATUS_BAR_STYLE` | `status_bar` | iOS status bar style (`default` / `black` / `black-translucent`) | `black-translucent` | No |
+| `IMAGES_ORIENTATION` | `orientation` | Filter by orientation (`all` / `landscape` / `portrait`) | `all` | No |
+| `CROP_TO_SCREEN` | `crop` | Crop to fill (`true`) or fit with bars (`false`) | `true` | No |
+| `KEN_BURNS` | `ken_burns` | Subtle zoom/pan motion on each photo | `true` | No |
+| `LOCALE` | `locale` | Date language (`en` / `ar`) | `en` | No |
+
+> \* `ALBUM_ID` is optional in `.env` if you always supply `?album_id=` in the URL.  
+> `IMMICH_URL` and `IMMICH_API_KEY` must be set in `.env` — they are never accepted as URL parameters for security.
+
+### Accepted values
+
+| Param | Valid values |
+| --- | --- |
+| `random` | `true` / `false` |
+| `orientation` | `all` / `landscape` / `portrait` |
+| `status_bar` | `default` / `black` / `black-translucent` |
+| `crop` | `true` / `false` |
+| `ken_burns` | `true` / `false` |
+| `locale` | `en` / `ar` |
+
+## Examples
+
+### Minimal — just open the slideshow
+
+Set `IMMICH_URL`, `IMMICH_API_KEY`, and `ALBUM_ID` in `.env`, then visit:
+
+```text
+http://localhost:8080/
+```
+
+---
+
+### Album ID via URL (no ALBUM_ID in .env needed)
+
+```text
+http://localhost:8080/?album_id=7adeee1d-c6f3-42b9-97a1-1ca5b29db35d
+```
+
+---
+
+### Multiple albums, random order, 10-second slides
+
+```text
+http://localhost:8080/?album_id=abc123,def456&random=true&duration=10
+```
+
+---
+
+### Landscape photos only, cropped to fill screen, Ken Burns off
+
+```text
+http://localhost:8080/?orientation=landscape&crop=true&ken_burns=false
+```
+
+---
+
+### Arabic locale, portrait photos, letterbox fit
+
+```text
+http://localhost:8080/?locale=ar&orientation=portrait&crop=false
+```
+
+---
+
+### Two iPads, same server — different albums and durations
+
+iPad in the living room:
+
+```text
+http://localhost:8080/?album_id=living-room-album-id&duration=7&crop=true
+```
+
+iPad in the bedroom:
+
+```text
+http://localhost:8080/?album_id=bedroom-album-id&duration=12&orientation=portrait
+```
+
+## Management UI
+
+Browse and select albums visually at:
+
+```text
+http://localhost:8080/management.php
+```
+
+## Fullscreen on iOS (iPad / iPhone)
+
+The browser Fullscreen API is not supported on iOS Safari. To get true full-screen on an iPad:
+
+1. Open the slideshow URL in Safari
+2. Tap the Share button → **Add to Home Screen**
+3. Launch from the home screen icon — it opens as a standalone full-screen app
+
+## Keyboard / Remote Control
+
+| Key | Action |
+| --- | --- |
+| `→` / `↓` | Next photo |
+| `←` | Previous photo |
+| `↑` | Reload page |
+| `Enter` | Pause / Resume |
+
+## Docker Compose Reference
+
+```yaml
+services:
+  immich-slideshow:
+    build: .
+    ports:
+      - "8080:80"
+    env_file: .env
+    volumes:
+      - ./public:/var/www/html
 ```
 
 ## License

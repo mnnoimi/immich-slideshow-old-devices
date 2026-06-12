@@ -1,6 +1,6 @@
 services:
   immich-slideshow-old-devices:
-    image: damarte/immich-slideshow-old-devices:latest
+    image: mnnoimi/immich-slideshow-old-devices:latest
     container_name: immich-slideshow-old-devices
     ports:
       - "8080:80"

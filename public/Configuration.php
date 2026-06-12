@@ -13,6 +13,8 @@ class Configuration {
     const ORIENTATION = 'IMAGES_ORIENTATION';
     const BACKGROUND_COLOR = 'BACKGROUND_COLOR';
     const STATUS_BAR_STYLE = 'STATUS_BAR_STYLE';
+    const KEN_BURNS        = 'KEN_BURNS';
+    const LOCALE           = 'LOCALE';
 
     public function __construct() {
         if (file_exists(self::CONFIG_FILE)) {
@@ -24,7 +26,15 @@ class Configuration {
         if (isset($this->fileConfig[$key])) {
             return $this->fileConfig[$key];
         }
-        return getenv($key);
+        $value = getenv($key);
+        if ($value === false) {
+            return false;
+        }
+        // Strip inline comments (e.g. "all # landscape, portrait, all" → "all")
+        if (($pos = strpos($value, ' #')) !== false) {
+            $value = rtrim(substr($value, 0, $pos));
+        }
+        return $value;
     }
 
     public static function save(array $config) {
