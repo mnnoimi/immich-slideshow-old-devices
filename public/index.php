@@ -167,29 +167,6 @@ try {
             font-size: 13px;
             letter-spacing: 1px;
         }
-        #fullscreen-btn {
-            position: fixed;
-            bottom: 15px;
-            right: 15px;
-            width: 40px;
-            height: 40px;
-            background: rgba(0, 0, 0, 0.45);
-            border: none;
-            border-radius: 6px;
-            z-index: 500;
-            cursor: pointer;
-            display: -webkit-flex;
-            display: flex;
-            -webkit-align-items: center;
-            align-items: center;
-            -webkit-justify-content: center;
-            justify-content: center;
-            padding: 0;
-            -webkit-tap-highlight-color: transparent;
-            -webkit-transition: background 0.2s;
-            transition: background 0.2s;
-        }
-        #fullscreen-btn:hover { background: rgba(0, 0, 0, 0.65); }
     </style>
     <style>
         html, body {
@@ -232,11 +209,7 @@ try {
         <div id="nav-next-arrow" class="nav-arrow">&#10095;</div>
     </div>
 
-    <button id="fullscreen-btn" type="button" title="Toggle fullscreen">
-        <svg id="fs-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white">
-            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-        </svg>
-    </button>
+
 
     <script>
         initSlideshow({
@@ -358,46 +331,6 @@ try {
         window.onImageChange = function(assetId) {
             fetchAssetInfo(assetId);
         };
-
-        // Fullscreen button
-        (function () {
-            var btn  = document.getElementById('fullscreen-btn');
-            var icon = document.getElementById('fs-icon');
-            if (!btn) return;
-
-            var EXPAND   = '<path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>';
-            var COMPRESS = '<path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>';
-
-            function isFS() {
-                return !!(document.fullscreenElement || document.webkitFullscreenElement ||
-                          document.mozFullScreenElement || document.msFullscreenElement);
-            }
-
-            function updateIcon() {
-                if (icon) icon.innerHTML = isFS() ? COMPRESS : EXPAND;
-            }
-
-            btn.addEventListener('click', function (e) {
-                e.stopPropagation();
-                if (isFS()) {
-                    if (document.exitFullscreen)            document.exitFullscreen();
-                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-                    else if (document.mozCancelFullScreen)  document.mozCancelFullScreen();
-                    else if (document.msExitFullscreen)     document.msExitFullscreen();
-                } else {
-                    var el = document.documentElement;
-                    if (el.requestFullscreen)            el.requestFullscreen();
-                    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-                    else if (el.mozRequestFullScreen)    el.mozRequestFullScreen();
-                    else if (el.msRequestFullscreen)     el.msRequestFullscreen();
-                }
-            });
-
-            document.addEventListener('fullscreenchange',       updateIcon);
-            document.addEventListener('webkitfullscreenchange', updateIcon);
-            document.addEventListener('mozfullscreenchange',    updateIcon);
-            document.addEventListener('MSFullscreenChange',     updateIcon);
-        })();
     </script>
 </body>
 </html>
